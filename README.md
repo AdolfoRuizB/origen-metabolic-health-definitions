@@ -72,4 +72,4 @@ This code is released under the MIT License (see `LICENSE`).
 
 ## Contact
 
-For questions about the code, contact [name and email of the corresponding author].
+For questions about the code, contact [Adolfo Isaac Ruiz Ballesteros adolfo.ruba@gmail.com].
