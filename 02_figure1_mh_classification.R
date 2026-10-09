@@ -19,7 +19,7 @@
 #
 # Definition A: harmonised metabolic syndrome criteria with Latin American
 #               waist-circumference cut-offs; MUH = 2 or more of 5 components
-# Definition B: empirically derived definition (Zembic et al.);
+# Definition B: empirically derived definition (Zembic and colleagues);
 #               MUH = 1 or more of 3 components
 #
 # Analytical population: BMI >= 18.5 kg/m2, sex recorded as female or male,

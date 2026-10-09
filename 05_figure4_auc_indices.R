@@ -17,7 +17,8 @@
 #   - Biochemical (n = 8)
 #   - Anthropometric and body-composition (n = 11)
 #   - Composite, integrating both (n = 8)
-# Formulas and references are provided in Table 2 of the manuscript.
+# Formulas and references are provided in the appendix (Supplementary
+# Table 1).
 #
 # Output (printed to the graphics device and console; no files are written):
 #   - Figure 4: AUC (95% CI) of each index by BMI category (points) and
@@ -346,6 +347,8 @@ dat <- raw_data %>%
                          BFM / SMM, NA_real_),
     WWI       = if_else(!is.na(WAIST) & !is.na(WEIGHT) & WEIGHT > 0,
                         WAIST / sqrt(WEIGHT), NA_real_),
+    # ABSI with waist circumference in cm: values are 100 times those
+    # obtained with waist in m (ranking and AUC are unaffected).
     ABSI      = if_else(!is.na(BMI) & BMI > 0 & !is.na(HEIGHT_M) & HEIGHT_M > 0 & !is.na(WAIST),
                         WAIST / (BMI^(2/3) * HEIGHT_M^(1/2)), NA_real_),
     C_INDEX   = if_else(!is.na(WEIGHT) & WEIGHT > 0 & !is.na(HEIGHT_M) & HEIGHT_M > 0 & !is.na(WAIST),
@@ -363,6 +366,8 @@ dat <- raw_data %>%
     TyG_WHtR  = if_else(!is.na(TyG) & !is.na(WHtR), TyG * WHtR, NA_real_),
     CMI       = if_else(!is.na(WHtR) & !is.na(TG) & !is.na(HDL) & HDL > 0,
                         (TG / HDL) * WHtR, NA_real_),
+    # LAP is defined only when waist circumference exceeds the sex-specific
+    # constant (65 cm in men, 58 cm in women).
     LAP       = case_when(
       SEX == "Male"   & !is.na(WAIST) & WAIST > 65 & !is.na(TG) ~ (WAIST - 65) * TG,
       SEX == "Female" & !is.na(WAIST) & WAIST > 58 & !is.na(TG) ~ (WAIST - 58) * TG,

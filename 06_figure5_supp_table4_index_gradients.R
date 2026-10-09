@@ -34,7 +34,9 @@
 # Figure 5 shows FLD for the three indices with the lowest Holm-adjusted
 # p values for the MH versus MUH contrast under Definition B (FMI, WHtR,
 # and BRI). Rows = indices; columns = Definition A (left) and Definition B
-# (right).
+# (right); panels a-f. Each panel reports the global p for the
+# index-by-phenotype interaction and the Holm-adjusted p for the MH versus
+# MUH contrast. Predicted probabilities are for women at the mean age.
 #
 # Output (printed to the graphics device and console; no files are written):
 #   - Figure 5
@@ -47,7 +49,7 @@
 #
 # Definition A: harmonised metabolic syndrome criteria with Latin American
 #               waist-circumference cut-offs; MUH = 2 or more of 5 components
-# Definition B: empirically derived definition (Zembic et al.);
+# Definition B: empirically derived definition (Zembic and colleagues);
 #               MUH = 1 or more of 3 components
 #
 # Analytical population: BMI >= 18.5 kg/m2, sex recorded as female or male,
@@ -104,6 +106,20 @@ safe_bool <- function(x) {
 
 # Values outside the prespecified physiological range [lo, hi] are set to NA.
 clip_range <- function(x, lo, hi) dplyr::if_else(!is.na(x) & x >= lo & x <= hi, x, NA_real_)
+
+# p values to two significant figures, or <0.0001 (journal style); vectorised
+fmt_p_lancet <- function(p) {
+  vapply(p, function(x) {
+    if (is.na(x)) return("NA")
+    if (x < 0.0001) return("<0.0001")
+    formatC(signif(x, 2), format = "fg", digits = 2, flag = "#")
+  }, character(1))
+}
+# "=0.37" or "<0.0001", for in-figure annotations
+p_eq <- function(p) {
+  txt <- fmt_p_lancet(p)
+  ifelse(startsWith(txt, "<"), txt, paste0("=", txt))
+}
 
 ###############################################################################
 # 1. DATA PREPARATION: indices, definitions, and phenotypes
@@ -269,6 +285,8 @@ dat <- raw_data %>%
                       SMM / HEIGHT_M^2, NA_real_),
     FAT_MUSCLE = if_else(!is.na(BFM) & !is.na(SMM) & SMM > 0, BFM / SMM, NA_real_),
     WWI     = if_else(!is.na(WAIST) & !is.na(WEIGHT) & WEIGHT > 0, WAIST / sqrt(WEIGHT), NA_real_),
+    # ABSI with waist circumference in cm: values are 100 times those
+    # obtained with waist in m (per-SD ORs are unaffected).
     ABSI    = if_else(!is.na(BMI) & BMI > 0 & !is.na(HEIGHT_M) & HEIGHT_M > 0 & !is.na(WAIST),
                       WAIST / (BMI^(2/3) * HEIGHT_M^(1/2)), NA_real_),
     C_INDEX = if_else(!is.na(WEIGHT) & WEIGHT > 0 & !is.na(HEIGHT_M) & HEIGHT_M > 0 & !is.na(WAIST),
@@ -443,7 +461,7 @@ dat <- raw_data %>%
     # -- Six phenotypes per definition (metabolic status x BMI category) -------
     pheno6_defB = dplyr::case_when(
       defB_status == "MH"  & BMI_CATEGORY == "NW" ~ "MHNW",
-      defB_status == "MUH" & BMI_CATEGORY == "NW" ~ "MUNW",
+      defB_status == "MUH" & BMI_CATEGORY == "NW" ~ "MUHNW",
       defB_status == "MH"  & BMI_CATEGORY == "OW" ~ "MHOW",
       defB_status == "MUH" & BMI_CATEGORY == "OW" ~ "MUHOW",
       defB_status == "MH"  & BMI_CATEGORY == "OB" ~ "MHO",
@@ -453,7 +471,7 @@ dat <- raw_data %>%
 
     pheno6_defA = dplyr::case_when(
       defA_status == "MH"  & BMI_CATEGORY == "NW" ~ "MHNW",
-      defA_status == "MUH" & BMI_CATEGORY == "NW" ~ "MUNW",
+      defA_status == "MUH" & BMI_CATEGORY == "NW" ~ "MUHNW",
       defA_status == "MH"  & BMI_CATEGORY == "OW" ~ "MHOW",
       defA_status == "MUH" & BMI_CATEGORY == "OW" ~ "MUHOW",
       defA_status == "MH"  & BMI_CATEGORY == "OB" ~ "MHO",
@@ -528,14 +546,14 @@ definition_def <- tibble::tribble(
 
 # Fixed colours for the six phenotypes
 phenotype_colours <- c(
-  "MHNW"  = "#2166AC", "MUNW"  = "#92C5DE",
+  "MHNW"  = "#2166AC", "MUHNW"  = "#92C5DE",
   "MHOW"  = "#4DAC26", "MUHOW" = "#B8E186",
   "MHO"   = "#D6604D", "MUHO"  = "#F4A582"
 )
-phenotype_order <- c("MHNW", "MUNW", "MHOW", "MUHOW", "MHO", "MUHO")
+phenotype_order <- c("MHNW", "MUHNW", "MHOW", "MUHOW", "MHO", "MUHO")
 
 # MH vs MUH pairs within each BMI category
-bmi_matched_pairs <- list(c("MHNW", "MUNW"), c("MHOW", "MUHOW"), c("MHO", "MUHO"))
+bmi_matched_pairs <- list(c("MHNW", "MUHNW"), c("MHOW", "MUHOW"), c("MHO", "MUHO"))
 
 ###############################################################################
 # 3. CORE: index-by-phenotype interaction model for one index-outcome pair
@@ -747,10 +765,9 @@ make_panel <- function(idx_var, idx_label, out_var, def_row) {
                               ")\ninsufficient data")))
   padj <- get_padj(def_row$key, out_var, idx_var)
   curve_labels <- r$curves %>% group_by(pheno) %>% slice_max(idx_raw, n = 1) %>% ungroup()
-  p_txt <- ifelse(is.na(r$p_int), "p-int = NA",
-                  ifelse(r$p_int < 0.001, "p-int < 0.001", sprintf("p-int = %.3f", r$p_int)))
-  holm_txt <- if (!is.na(padj)) paste0(" | Holm p_adj=",
-                                       ifelse(padj < 0.001, formatC(padj, format = "e", digits = 1), sprintf("%.3f", padj))) else ""
+  p_txt <- if (is.na(r$p_int)) "p for interaction: NA" else
+    paste0("p for interaction", p_eq(r$p_int))
+  holm_txt <- if (!is.na(padj)) paste0("; Holm-adjusted p", p_eq(padj)) else ""
 
   ggplot(r$curves, aes(idx_raw, prob, color = pheno, fill = pheno)) +
     geom_line(linewidth = 0.9) +
@@ -789,14 +806,20 @@ n_rows  <- nrow(selected)
 panel_order <- unlist(lapply(seq_len(n_rows), function(i) (i - 1) * n_def + rev(seq_len(n_def))))
 figure_panels <- panels[panel_order]
 
-# Column labels at the bottom: "A" (Definition A) and "B" (Definition B)
+# Panel tags a-f (lower case), by row
+figure_panels <- lapply(seq_along(figure_panels), function(i) {
+  figure_panels[[i]] + labs(tag = letters[i]) +
+    theme(plot.tag = element_text(face = "bold", size = 11))
+})
+
+# Column labels at the bottom: Definition A (left) and Definition B (right)
 column_label <- function(txt) {
   ggplot() +
     annotate("text", x = 0.5, y = 0.5, label = txt, fontface = "bold", size = 5) +
     coord_cartesian(xlim = c(0, 1), ylim = c(0, 1), expand = FALSE) +
     theme_void()
 }
-column_labels <- lapply(LETTERS[seq_len(n_def)], column_label)
+column_labels <- lapply(c("Definition A", "Definition B")[seq_len(n_def)], column_label)
 
 figure_5 <- patchwork::wrap_plots(c(figure_panels, column_labels),
                                   nrow = n_rows + 1, ncol = n_def, byrow = TRUE,
@@ -824,10 +847,8 @@ for (i in seq_len(nrow(selected))) {
     fig5_rows[[length(fig5_rows) + 1L]] <- bind_cols(
       tibble(
         Definition = dr$label, Outcome = selected$out_lab[i], Index = selected$idx_label[i],
-        `p-int`      = ifelse(is.na(r$p_int), "NA",
-                              ifelse(r$p_int < 0.001, "<0.001", sprintf("%.3f", r$p_int))),
-        `Holm p_adj` = ifelse(is.na(pa), "NA",
-                              ifelse(pa < 0.001, formatC(pa, format = "e", digits = 1), sprintf("%.3f", pa))),
+        `p-int`      = fmt_p_lancet(r$p_int),
+        `Holm p_adj` = fmt_p_lancet(pa),
         ROR = if (is.null(ov)) NA_real_ else round(ov$OR_ratio, 2)
       ),
       sl)
@@ -841,8 +862,7 @@ print(as.data.frame(fig5_summary), row.names = FALSE)
 ###############################################################################
 # 8. SUPPLEMENTARY TABLE 4: all index-outcome pairs under both definitions
 ###############################################################################
-fmt_p   <- function(p) ifelse(is.na(p), "NA",
-                              ifelse(p < 0.001, formatC(p, format = "e", digits = 1), sprintf("%.3f", p)))
+fmt_p   <- function(p) fmt_p_lancet(p)
 fmt_ror <- function(x) ifelse(is.na(x), "NA", sprintf("%.2f", x))
 mark    <- function(p) ifelse(!is.na(p) & p < 0.05, "*", "")
 

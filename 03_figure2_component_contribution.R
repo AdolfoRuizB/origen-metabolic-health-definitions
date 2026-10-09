@@ -28,7 +28,7 @@
 #
 # Definition A: harmonised metabolic syndrome criteria with Latin American
 #               waist-circumference cut-offs (5 components)
-# Definition B: empirically derived definition (Zembic et al.) (3 components)
+# Definition B: empirically derived definition (Zembic and colleagues) (3 components)
 #
 # Analytical population: BMI >= 18.5 kg/m2, sex recorded as female or male,
 # and metabolic health status resolvable under both definitions (same as
@@ -56,11 +56,7 @@ data_path <- "path/to/oriGen_questionnaire_data.tsv"
 # Reference year used to estimate age from year of birth
 REFERENCE_YEAR <- 2025L
 
-raw_data <- read_tsv(
-  data_path,
-  show_col_types = FALSE,
-  locale = locale(encoding = "latin1")
-)
+raw_data <- read_tsv(data_path, show_col_types = FALSE)
 
 # ======================== 2. HELPER FUNCTIONS ================================
 
@@ -570,7 +566,7 @@ make_dominance_panel <- function(value) {
     scale_fill_manual(values = criterion_colours, name = "Criterion", breaks = criterion_levels) +
     scale_x_discrete(labels = definition_AB, expand = expansion(add = 0.45)) +
     scale_y_continuous(expand = expansion(mult = c(0, 0.02))) +
-    labs(title = NULL, subtitle = NULL, x = NULL, y = "Relative Contribution (%)") +
+    labs(title = NULL, subtitle = NULL, x = NULL, y = "Relative contribution (%)") +
     theme_minimal(base_size = 12) +
     theme(strip.text = element_blank(),
           strip.background = element_blank(),

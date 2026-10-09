@@ -16,14 +16,15 @@
 # p**** compare overlapping groups and are interpreted descriptively.
 #
 # Tests: Kruskal-Wallis test (continuous variables) and chi-squared test
-# (categorical variables). Data are mean (SD) or n (%).
+# (categorical variables). Data are mean (SD) or n (%). p values are given
+# to two significant figures, or as <0.0001.
 #
 # Output (printed to the console; no files are written): Table 1 and its
 # footnote.
 #
 # Definition A: harmonised metabolic syndrome criteria with Latin American
 #               waist-circumference cut-offs; MUH = 2 or more of 5 components
-# Definition B: empirically derived definition (Zembic et al.);
+# Definition B: empirically derived definition (Zembic and colleagues);
 #               MUH = 1 or more of 3 components
 #
 # Analytical population: BMI >= 18.5 kg/m2, sex recorded as female or male,
@@ -77,17 +78,21 @@ safe_bool <- function(x) {
 # Values outside the prespecified physiological range [lo, hi] are set to NA.
 clip_range <- function(x, lo, hi) if_else(!is.na(x) & x >= lo & x <= hi, x, NA_real_)
 
+# Mean (SD) with one decimal and thousands separator
 fmt_mean_sd <- function(x) {
   x <- x[!is.na(x) & is.finite(x)]
   if (length(x) == 0) return(NA_character_)
-  paste0(round(mean(x), 1), " (", round(sd(x), 1), ")")
+  paste0(formatC(mean(x), format = "f", digits = 1, big.mark = ","), " (",
+         formatC(sd(x),   format = "f", digits = 1, big.mark = ","), ")")
 }
 
+# n (%) with thousands separator and one decimal
 fmt_n_pct <- function(x) {
   n   <- sum(x == 1L, na.rm = TRUE)
   tot <- sum(!is.na(x))
   if (tot == 0) return(NA_character_)
-  paste0(n, " (", round(100 * n / tot, 1), "%)")
+  paste0(formatC(n, format = "d", big.mark = ","), " (",
+         formatC(100 * n / tot, format = "f", digits = 1), "%)")
 }
 
 # MH vs MUH within one definition
@@ -129,10 +134,11 @@ p_categorical_groups <- function(x_a, x_b) {
   tryCatch(chisq.test(tt)$p.value, error = function(e) NA_real_)
 }
 
+# p values to two significant figures, or <0.0001 (journal style)
 fmt_p <- function(p) {
   if (is.na(p)) return(NA_character_)
-  if (p < 0.001) return("<0.001")
-  as.character(round(p, 3))
+  if (p < 0.0001) return("<0.0001")
+  formatC(signif(p, 2), format = "fg", digits = 2, flag = "#")
 }
 
 # == Data preparation ==========================================================
@@ -265,6 +271,8 @@ dat_unfiltered <- raw_data %>%
                          364.2 - 365.5 * sqrt(pmax(0,
                            1 - ((WAIST / (2 * pi))^2 / ((HEIGHT_CM / 2)^2)))),
                          NA_real_),
+    # ABSI with waist circumference in cm: values are 100 times those
+    # obtained with waist in m (ranking, AUC, and per-SD ORs are unaffected).
     ABSI       = if_else(!is.na(BMI) & BMI > 0 & !is.na(HEIGHT_M) & HEIGHT_M > 0 & !is.na(WAIST),
                          WAIST / (BMI^(2/3) * HEIGHT_M^(1/2)), NA_real_),
 
@@ -453,9 +461,11 @@ dat <- dat %>%
     # Composite
     TyG_BMI = if_else(!is.na(TyG) & !is.na(BMI), TyG * BMI, NA_real_),
     CMI     = if_else(!is.na(TG_HDL) & !is.na(WHtR), TG_HDL * WHtR, NA_real_),
+    # LAP is defined only when waist circumference exceeds the sex-specific
+    # constant (65 cm in men, 58 cm in women); same as Figures 4 and 5.
     LAP     = case_when(
-      Sex == "Male"   & !is.na(WAIST) & !is.na(TG) ~ (WAIST - 65) * TG,
-      Sex == "Female" & !is.na(WAIST) & !is.na(TG) ~ (WAIST - 58) * TG,
+      Sex == "Male"   & !is.na(WAIST) & WAIST > 65 & !is.na(TG) ~ (WAIST - 65) * TG,
+      Sex == "Female" & !is.na(WAIST) & WAIST > 58 & !is.na(TG) ~ (WAIST - 58) * TG,
       TRUE ~ NA_real_
     ),
     METS_IR = if_else(!is.na(GLUCOSE) & !is.na(TG) & !is.na(HDL) & HDL > 1 &
@@ -496,7 +506,7 @@ table_spec <- tribble(
   "BIOCHEMICAL INDICES", "Non-HDL cholesterol",               "NON_HDL", "cont",
   "BIOCHEMICAL INDICES", "Atherogenic index of plasma (AIP)", "AIP",     "cont",
   "BIOCHEMICAL INDICES", "Triglyceride-glucose index (TyG)",  "TyG",     "cont",
-  "BIOCHEMICAL INDICES", "Lipid comprehensive index (LCI)",   "LCI",     "cont",
+  "BIOCHEMICAL INDICES", "Lipoprotein combine index (LCI)",   "LCI",     "cont",
 
   "ANTHROPOMETRIC / BODY COMPOSITION INDICES", "BMI, kg/m\u00b2",                         "BMI",           "cont",
   "ANTHROPOMETRIC / BODY COMPOSITION INDICES", "Normal weight",                           "NORMAL_WEIGHT", "cat",
@@ -621,9 +631,9 @@ table_1_footnote <- paste0(
   "obtained with the Kruskal\u2013Wallis test for continuous variables and the ",
   "\u03c7\u00b2 test for categorical variables. Cardiometabolic indices are grouped ",
   "as biochemical, anthropometric and body-composition, and composite indices ",
-  "(formulas in table 2). Fasting glucose was analysed only in ",
+  "(formulas in the appendix, Supplementary Table 1). Fasting glucose was analysed only in ",
   "participants reporting \u22658 h of fasting. AIP=atherogenic index of plasma. ",
-  "TyG=triglyceride\u2013glucose index. LCI=lipid comprehensive index. ",
+  "TyG=triglyceride\u2013glucose index. LCI=lipoprotein combine index. ",
   "BMI=body-mass index. WHtR=waist-to-height ratio. BRI=body roundness index. ",
   "RFM=relative fat mass. FMI=fat mass index. SMI=skeletal muscle index. ",
   "WWI=weight-adjusted waist index. ABSI=a body shape index. FFMI=fat-free mass ",
