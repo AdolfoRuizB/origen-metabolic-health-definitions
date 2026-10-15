@@ -66,7 +66,7 @@ install.packages(c("dplyr", "readr", "stringr", "tidyr", "tibble", "ggplot2",
 
 If you use this code, please cite the article above and the archived version of this repository:
 
-> Ruiz-Ballesteros AI, et al. origen-metabolic-health-definitions (Version v1.0.0) [Computer software]. Zenodo. DOI: [pending]
+Ruiz-Ballesteros AI. origen-metabolic-health-definitions [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23271210
 
 ## License
 
