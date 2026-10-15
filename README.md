@@ -35,6 +35,7 @@ Each script is self-contained: it reads the oriGen questionnaire file, applies t
 | `06_figure5_supp_table4_index_gradients.R` | Figure 5. Adiposity-related gradients in the predicted probability of FLD within metabolic phenotypes; Supplementary Table 4. Index-by-phenotype interaction and MH versus MUH contrasts for all index–outcome pairs |
 | `07_supp_table2_diagnoses.R` | Supplementary Table 2. Prevalence of the individual diagnoses included in the composite outcomes, overall, by BMI category, and by sex |
 | `08_supp_table3_by_sex_age.R` | Supplementary Table 3. Characteristics of the study population by sex and age group |
+`09_supp_figure2_abnormal_components.R` | Supplementary Figure 2. Combinations of abnormal components under Definition A and Definition B (UpSet-type plots), with the prevalence of each abnormal component |
 
 Formulas and references for the cardiometabolic indices are provided in the appendix of the article (Supplementary Table 1). Lipid and glucose concentrations are in mg/dL. The lipid accumulation product (LAP) is calculated only when waist circumference exceeds the sex-specific constant of the formula (65 cm in men, 58 cm in women). A body shape index (ABSI) is calculated with waist circumference in cm, so its values are 100 times those obtained with waist in m; rankings, AUCs, and per-SD odds ratios are unaffected.
 
